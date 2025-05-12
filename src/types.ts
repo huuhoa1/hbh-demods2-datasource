@@ -15,10 +15,16 @@ export interface DataPoint {
   Value: number;
 }
 
-export interface DataSourceResponse {
+/* export interface DataSourceResponse {
   datapoints: DataPoint[];
+} */
+export interface DataSourceResponse {
+  sid?: string;
+  entry?: Array<{ content: { dispatchState: string } }>;
+  post_process_count?: number;
+  results?: any[];
+  fields?: Array<{ name: string }>;
 }
-
 /**
  * These are options configured for each DataSource instance
  */
@@ -31,4 +37,26 @@ export interface MyDataSourceOptions extends DataSourceJsonData {
  */
 export interface MySecureJsonData {
   apiKey?: string;
+}
+// Splunk
+export interface SplunkQuery extends DataQuery {
+  queryText: string;
+}
+
+export const defaultQuery: Partial<SplunkQuery> = {
+  queryText: '',
+};
+
+/**
+ * These are options configured for each DataSource instance
+ */
+export interface SplunkDataSourceOptions extends DataSourceJsonData {
+  endpoint?: string;
+}
+
+/**
+ * Value that is used in the backend, but never sent over HTTP to the frontend
+ */
+export interface SplunkSecureJsonData {
+  basicAuthToken?: string;
 }
