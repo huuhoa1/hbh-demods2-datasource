@@ -91,9 +91,20 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   }
 
   async request(url: string, params?: string) {
+    const data = new URLSearchParams({
+      search: `search index=_internal * | stats count`,
+      output_mode: 'json',
+      exec_mode: 'oneshot',
+    }).toString();
     console.log('hbh: url:', `${this.baseUrl}${url}${params?.length ? `?${params}` : ''}`);
     const response = getBackendSrv().fetch<DataSourceResponse>({
-      url: `${this.baseUrl}${url}${params?.length ? `?${params}` : ''}`,
+      // url: `${this.baseUrl}${url}${params?.length ? `?${params}` : ''}`,
+      method: 'POST',
+      url: this.baseUrl + '/services/search/jobs',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      data: data,
     });
     console.log('hbh: response', response);
 
@@ -103,7 +114,7 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
   /**
    * Checks whether we can connect to the API.
    */
-  async testDatasource() {
+  /* async testDatasource() {
     const defaultErrorMessage = 'Cannot connect to API';
     console.log('hbh:testDatasource');
 
@@ -135,5 +146,86 @@ export class DataSource extends DataSourceApi<MyQuery, MyDataSourceOptions> {
         message,
       };
     }
-  }
+  } */
+    async testDatasource() {
+      const defaultErrorMessage = 'Cannot connect to API';
+      console.log('hbh:testDatasource');
+
+      try {
+        const response = await this.request('/services/search/jobs');
+        if (response.status === 200) {
+          return {
+            status: 'success',
+            message: 'Success',
+          };
+        } else {
+          return {
+            status: 'error',
+            message: response.statusText ? response.statusText : defaultErrorMessage,
+          };
+        }
+      } catch (err) {
+        let message = '';
+        if (typeof err === 'string') {
+          message = err;
+        } else if (isFetchError(err)) {
+          message = 'Fetch error: ' + (err.statusText ? err.statusText : defaultErrorMessage);
+          if (err.data && err.data.error && err.data.error.code) {
+            message += ': ' + err.data.error.code + '. ' + err.data.error.message;
+          }
+        }
+        return {
+          status: 'error',
+          message,
+        };
+      }
+
+      /* const data = new URLSearchParams({
+        search: `search index=_internal * | stats count`,
+        output_mode: 'json',
+        exec_mode: 'oneshot',
+      }).toString();
+
+      const response = getBackendSrv().fetch<DataSourceResponse>({
+        method: 'POST',
+        url: this.baseUrl + '/services/search/jobs',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        data: data,
+      });
+      console.log('hbh: response', response);
+  
+      const promise = lastValueFrom(response);
+      console.log('hbh: promise', promise);
+
+      promise.then( response => {
+        if (response.status === 200) {
+          return {
+            status: 'success',
+            message: 'Successfully connected to data source',
+          };
+        } else {
+          return {
+            status: 'error',
+            message: response.statusText ? response.statusText : defaultErrorMessage,
+          };
+        }
+      }).catch( err => {
+        let message = '';
+        if (typeof err === 'string') {
+          message = err;
+        } else if (isFetchError(err)) {
+          message = 'Fetch error: ' + (err.statusText ? err.statusText : defaultErrorMessage);
+          if (err.data && err.data.error && err.data.error.code) {
+            message += ': ' + err.data.error.code + '. ' + err.data.error.message;
+          }
+        }
+        return {
+          status: 'error',
+          message,
+        };
+      }) */
+      
+    }
 }
