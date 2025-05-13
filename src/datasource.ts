@@ -9,6 +9,7 @@ import {
   FieldType,
   PartialDataFrame,
   MutableDataFrame,
+  DataFrame,
 } from '@grafana/data';
 
 // import { MyQuery, MyDataSourceOptions, DEFAULT_QUERY, DataSourceResponse } from './types';
@@ -42,6 +43,29 @@ type TODO = {
   filterQuery(query: SplunkQuery): boolean {
     // if no query has been provided, prevent the query from being executed
     return !!query.queryText;
+  }
+
+  appendRows(frame: DataFrame, newRows: Array<Record<string, any>>): DataFrame {
+    if (!frame.fields || frame.fields.length === 0) {
+      return frame; // Or handle error: cannot append to a frame with no fields
+    }
+  
+    const updatedFields = frame.fields.map((field) => {
+      // console.log('hbh: appendRows: field:', field);
+      const newValues = [...field.values];
+      newRows.forEach((newRow) => {
+        // console.log('hbh: appendRows: newRow:', newRow);
+        // console.log('hbh: appendRows: field.name:', field.name);
+        // console.log('hbh: appendRows: newRow[field.name]:', newRow[field.name]);
+
+        newValues.push(newRow[field.name]);
+      });
+      // console.log('hbh: appendRows: newValues', newValues);
+      return { ...field, values: newValues };
+    });
+    // console.log('hbh: appendRows: updatedFields', updatedFields);
+
+    return { ...frame, fields: updatedFields };
   }
 
   /* async query(options: DataQueryRequest<MyQuery>): Promise<DataQueryResponse> {
@@ -106,31 +130,52 @@ type TODO = {
           refId: query.refId,
           fields: [],
         });
+        console.log('hbh: frame init: ', frame);
+
 
         // console.log(`DEBUG: nFields=${response.fields.length}`);
         // console.log(`DEBUG: nResults=${response.results.length}`);
 
         //let fields = response.data.fields.map((field: any) => field['name']);
+        let fieldsArray: any[] = [];
         response.fields.forEach((field: any) => {
-          // console.log(`DEBUG: field=${field}`);
-          frame.addField({ name: field });
+          console.log(`DEBUG: field=${field}`);
+          frame.addField({ name: field }); //how does it know the type to add?
+          fieldsArray.push({name: field, values:[]});
         });
+        console.log('hbh: frame after addField: ', frame);
 
+
+        const initialFrame: DataFrame = {
+          refId: query.refId,
+          fields: fieldsArray,
+          length: 0,
+        };
+        let newRowstoAppend: any[] = [];
         response.results.forEach((result: any) => {
-          // console.log(`DEBUG: result=${JSON.stringify(result)}`);
+          console.log(`DEBUG: result=${JSON.stringify(result)}`);
           let row: any[] = [];
+          const rowObj=Object.create(null);
 
           response.fields.forEach((field: any) => {
             if (field === 'Time') {
               let time = moment(result['_time']).format('YYYY-MM-DDTHH:mm:ssZ');
               row.push(time);
+              rowObj['Time'] = time;
             } else {
               row.push(result[field]);
+              rowObj[field] = result[field];
+
             }
           });
           frame.appendRow(row);
+          newRowstoAppend.push(rowObj);
         });
-
+        console.log('hbh: newRowstoAppend:', newRowstoAppend);
+        const updatedFrame = this.appendRows(initialFrame, newRowstoAppend);
+        console.log('hbh: updatedFrame', updatedFrame);
+        console.log('hbh: frame: ', frame);
+        // return updatedFrame;
         return frame;
       })
     );
